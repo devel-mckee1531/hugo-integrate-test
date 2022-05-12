@@ -1,0 +1,3 @@
+[submodule "themes/techblog"]
+	path = themes/techblog
+	url = https://github.com/devel-mckee1531/hugo-theme-test.git
