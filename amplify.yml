@@ -1,23 +1,12 @@
 version: 1
 frontend:
   phases:
-    prebuild:
+    preBuild:
       commands:
-        - echo "Install hugo theme assets' dependencies"
-        - cd themes/techblog
-        - echo "current directory is $(pwd)"
-        - yarn install
+        - prebuild.sh
     build:
       commands:
-        - echo "$AWS_APP_ID"
-        - echo "Build hugo theme assets"
-        - cd themes/techblog
-        - echo "current directory is $(pwd)"
-        - yarn build
-        - echo "Build static sites"
-        - cd ../..
-        - echo "current directory is $(pwd)"
-        - hugo --configDir themes/techblog/config --environment "${BUILD_ENV}"
+        - build.sh
   artifacts:
     baseDirectory: /public
     files:
