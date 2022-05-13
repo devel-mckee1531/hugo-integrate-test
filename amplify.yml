@@ -3,10 +3,10 @@ frontend:
   phases:
     preBuild:
       commands:
-        - . prebuild.sh
+        - . build/prebuild.sh
     build:
       commands:
-        - . build.sh
+        - ./build/build.sh
   artifacts:
     baseDirectory: /public
     files:
