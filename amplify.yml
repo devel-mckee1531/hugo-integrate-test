@@ -6,7 +6,7 @@ frontend:
         - . prebuild.sh
     build:
       commands:
-        - ./build.sh
+        - . build.sh
   artifacts:
     baseDirectory: /public
     files:
