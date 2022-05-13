@@ -23,7 +23,7 @@ if [ -z "$HUGO_BASEURL" ]; then
 fi
 
 echo "Install hugo theme assets' dependencies"
-set -eu
+set -e
 cd "${PROJECT_ROOT_DIR}/themes/${HUGO_THEME}"
 echo "current directory is $(pwd)"
 yarn install
