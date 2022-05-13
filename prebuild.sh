@@ -27,3 +27,9 @@ set -e
 cd "${PROJECT_ROOT_DIR}/themes/${HUGO_THEME}"
 echo "current directory is $(pwd)"
 yarn install
+
+echo "Prebuild is suceeded"
+cd "${PROJECT_ROOT_DIR}"
+echo "current directory is $(pwd)"
+
+echo "Advance to the next stage"

@@ -3,6 +3,7 @@
 set -e
 
 echo "Build hugo theme assets"
+cd "${PROJECT_ROOT_DIR}/themes/${HUGO_THEME}"
 echo "current directory is $(pwd)"
 yarn build
 
