@@ -2,7 +2,7 @@
 
 echo "Set environment variables"
 echo "current directory is $(pwd)"
-set -ex
+set -e
 if [ -z "$PROJECT_ROOT_DIR" ]; then
   PROJECT_ROOT_DIR="$(pwd)"
 fi
@@ -11,7 +11,7 @@ if [ -z "$BUILD_ENV" ]; then
 fi
 
 echo "Setup hugo config"
-set -ex
+set -e
 if [ -z "$HUGO_ENV" ]; then
   HUGO_ENV="${BUILD_ENV}"
 fi
@@ -23,7 +23,7 @@ if [ -z "$HUGO_BASEURL" ]; then
 fi
 
 echo "Install hugo theme assets' dependencies"
-set -eux
+set -eu
 cd "${PROJECT_ROOT_DIR}/themes/${HUGO_THEME}"
 echo "current directory is $(pwd)"
 yarn install
