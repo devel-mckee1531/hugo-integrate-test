@@ -9,6 +9,7 @@ frontend:
         - yarn install
     build:
       commands:
+        - echo "$AWS_APP_ID"
         - echo "Build hugo theme assets"
         - cd themes/techblog
         - echo "current directory is $(pwd)"
