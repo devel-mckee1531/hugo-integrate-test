@@ -18,7 +18,7 @@ on:
         default: ""
 
 env:
-  NEW_BRANCH_BASE: ${{ }}
+  NEW_BRANCH_BASE: ${{ github.event.inputs.branchBase }}
   TARGET_SUBMODULE_TAG: ${{ github.event.inputs.tag }}
 
 jobs:
