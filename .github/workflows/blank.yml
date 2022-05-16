@@ -7,10 +7,15 @@ on:
     branches: [ main ]
 
   workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        default: "Input tag here"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
 
     steps:
       - name: checkout
@@ -25,3 +30,9 @@ jobs:
           cd themes/techblog
           LATEST_TAG="$(git tag -l --sort -refname | head -n 1)"
           echo "$LATEST_TAG"
+
+      - name: checkout submodule
+        run: |
+          cd themes/techblog
+          git checkout refs/tags/${{ github.event.inputs.tag }}
+          
