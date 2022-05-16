@@ -24,8 +24,8 @@ env:
 jobs:
   checkEnvironment:
     if: ${{
-          $NEW_BRANCH_BASE != "" &&
-          $TARGET_SUBMODULE_TAG != ""
+          env.NEW_BRANCH_BASE != "" &&
+          env.TARGET_SUBMODULE_TAG != ""
         }}
     runs-on: ubuntu-latest
     steps:
@@ -44,8 +44,8 @@ jobs:
 
   updateSubmodule:
     if: ${{
-          $NEW_BRANCH_BASE != "" &&
-          $TARGET_SUBMODULE_TAG != ""
+          env.NEW_BRANCH_BASE != "" &&
+          env.TARGET_SUBMODULE_TAG != ""
         }}
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +57,7 @@ jobs:
         run: |
           cd themes/techblog
           git checkout refs/tags/$TARGET_SUBMODULE_TAG
-      - name: Add and Commit
+      - name: Add and Commit .gitmodules
         uses: EndBug/add-and-commit@v9.0.0
         with:
           add: .gitmodules
