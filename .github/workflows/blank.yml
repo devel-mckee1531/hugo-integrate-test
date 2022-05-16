@@ -16,10 +16,10 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
         with:
-          submodules: 'recursive'
+          submodules: recursive
 
       - name: check latest tag
         run: |
           cd themes/techblog
-          git pull
+          git fetch
           git tag -l --sort -refname | head -n 1
