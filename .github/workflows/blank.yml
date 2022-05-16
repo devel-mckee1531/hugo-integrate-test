@@ -53,8 +53,8 @@ jobs:
     steps:
       - name: Create new branch
         run: |
-          git switch -c "${NEW_BRANCH_BASE}}${{TARGET_SUBMODULE_TAG}}"
-          git push -u origin "${NEW_BRANCH_BASE}}${{TARGET_SUBMODULE_TAG}}"
+          git switch -c "${NEW_BRANCH_BASE}}${TARGET_SUBMODULE_TAG}"
+          git push -u origin "${NEW_BRANCH_BASE}}${TARGET_SUBMODULE_TAG}"
       - name: Checkout submodule
         run: |
           cd themes/techblog
