@@ -16,6 +16,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
         with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           submodules: recursive
 
       - name: check latest tag
