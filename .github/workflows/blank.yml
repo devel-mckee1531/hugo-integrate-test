@@ -25,8 +25,8 @@ jobs:
   checkEnvironment:
     if: >-
         ${{
-          env.NEW_BRANCH_BASE != "" &&
-          env.TARGET_SUBMODULE_TAG != ""
+          github.event.inputs.branchBase != "" &&
+          github.event.inputs.tag != ""
         }}
     runs-on: ubuntu-latest
     steps:
@@ -46,8 +46,8 @@ jobs:
   updateSubmodule:
     if: >-
         ${{
-          env.NEW_BRANCH_BASE != "" &&
-          env.TARGET_SUBMODULE_TAG != ""
+          github.event.inputs.branchBase != "" &&
+          github.event.inputs.tag != ""
         }}
     runs-on: ubuntu-latest
     steps:
