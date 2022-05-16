@@ -18,11 +18,8 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: move to submodule directory
-        run: cd themes/techblog
-
-      - name: pull
-        run: git pull
-        
       - name: check latest tag
-        run: git tag -l --sort -refname | head -n 1
+        run: |
+          cd themes/techblog
+          git pull
+          git tag -l --sort -refname | head -n 1
