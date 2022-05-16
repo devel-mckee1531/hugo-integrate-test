@@ -42,15 +42,6 @@ jobs:
           cd themes/techblog
           LATEST_TAG="$(git tag -l --sort -refname | head -n 1)"
           echo "$LATEST_TAG"
-
-  updateSubmodule:
-    if: >-
-        ${{
-          github.event.inputs.branchBase != '' &&
-          github.event.inputs.tag != ''
-        }}
-    runs-on: ubuntu-latest
-    steps:
       - name: Create new branch
         run: |
           git switch -c "${NEW_BRANCH_BASE}${TARGET_SUBMODULE_TAG}"
