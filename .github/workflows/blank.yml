@@ -21,6 +21,5 @@ jobs:
       - name: check latest tag
         run: |
           cd themes/techblog
-          git fetch
+          git fetch origin
           git tag -l --sort -refname | head -n 1
-          git -v
