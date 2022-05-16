@@ -8,31 +8,61 @@ on:
 
   workflow_dispatch:
     inputs:
+      branchBase:
+        required: true
+        description: "Branch base name...(ex.design/)"
+        default: "design/"
       tag:
         required: true
-        default: "Input tag here"
+        description: "Input tag here"
+        default: ""
+
+env:
+  NEW_BRANCH_BASE: ${{ }}
+  TARGET_SUBMODULE_TAG: ${{ github.event.inputs.tag }}
 
 jobs:
-  build:
+  checkEnvironment:
+    if: ${{
+          $NEW_BRANCH_BASE != "" &&
+          $TARGET_SUBMODULE_TAG != ""
+        }}
     runs-on: ubuntu-latest
-    
-
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
 
-      - name: check latest tag
+      - name: Check latest tag
         run: |
           cd themes/techblog
           LATEST_TAG="$(git tag -l --sort -refname | head -n 1)"
           echo "$LATEST_TAG"
 
-      - name: checkout submodule
+  updateSubmodule:
+    if: ${{
+          $NEW_BRANCH_BASE != "" &&
+          $TARGET_SUBMODULE_TAG != ""
+        }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create new branch
+        run: |
+          git switch -c "${NEW_BRANCH_BASE}}${{TARGET_SUBMODULE_TAG}}"
+          git push -u origin "${NEW_BRANCH_BASE}}${{TARGET_SUBMODULE_TAG}}"
+      - name: Checkout submodule
         run: |
           cd themes/techblog
-          git checkout refs/tags/${{ github.event.inputs.tag }}
-          
+          git checkout refs/tags/$TARGET_SUBMODULE_TAG
+      - name: Add and Commit
+        uses: EndBug/add-and-commit@v9.0.0
+        with:
+          add: .gitmodules
+          author_name: devel-mckee1531
+          author_email: devel.mckee.1531@gmail.com
+          message: "The new submodule version is released."
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+           
