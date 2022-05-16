@@ -23,7 +23,8 @@ env:
 
 jobs:
   checkEnvironment:
-    if: ${{
+    if: >-
+        ${{
           env.NEW_BRANCH_BASE != "" &&
           env.TARGET_SUBMODULE_TAG != ""
         }}
@@ -43,7 +44,8 @@ jobs:
           echo "$LATEST_TAG"
 
   updateSubmodule:
-    if: ${{
+    if: >-
+        ${{
           env.NEW_BRANCH_BASE != "" &&
           env.TARGET_SUBMODULE_TAG != ""
         }}
