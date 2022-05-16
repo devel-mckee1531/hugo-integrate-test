@@ -22,4 +22,5 @@ jobs:
         run: |
           cd themes/techblog
           git fetch origin
-          git tag -l --sort -refname | head -n 1
+          LATEST_TAG=git tag -l --sort -refname | head -n 1
+          echo "$LATEST_TAG"
