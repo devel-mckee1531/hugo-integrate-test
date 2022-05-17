@@ -1,54 +1,64 @@
 name: testCI
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
   workflow_dispatch:
     inputs:
-      branchBase:
-        required: true
-        description: "Branch base name...(ex.design/)"
-        default: "design/"
-      tag:
-        required: true
+      targetTag:
+        required: false
         description: "Input tag here"
         default: ""
 
 env:
-  NEW_BRANCH_BASE: ${{ github.event.inputs.branchBase }}
-  TARGET_SUBMODULE_TAG: ${{ github.event.inputs.tag }}
+  TARGET_BRANCH_NAME: develop
+  SUBMODULE_DIR: themes/techblog
+  NEW_BRANCH_BASE: design/
 
 jobs:
   checkEnvironment:
-    if: >-
-        ${{
-          github.event.inputs.branchBase != '' &&
-          github.event.inputs.tag != ''
-        }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
+          ref: "${TARGET_BRANCH_NAME}"
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
-
-      - name: Check latest tag
+      - id: stepCLT
+        name: Check the Latest Tag
         run: |
-          cd themes/techblog
+          cd "${SUBMODULE_DIR}"
           LATEST_TAG="$(git tag -l --sort -refname | head -n 1)"
-          echo "$LATEST_TAG"
-      - name: Create new branch
+          echo "::set-output name=latestTag::$LATEST_TAG"
+      - name: Download a Current Tag Artifact
+        uses: actions/download-artifact@v3.0.0
+        with:
+          name: currentTag
+          path: currentTag.json
+      - id: stepSCTE
+        name: Set the Current Tag to Environment
+        if: ${{ success() }}
+        run: |
+          CURRENT_TAG="$(cat currentTag.json | jq '.version | @sh')"
+          echo "::set-output name=currentTag::$CURRENT_TAG"
+      - name: Set the Target Tag to Environment
+        run: |
+          if [ ${{ github.event.inputs.tag }} != '' ]; then
+            echo "::set-output name=targetTag::${{ github.event.inputs.tag }}"
+          else
+            echo "::set-output name=targetTag::${{ github.event.inputs.tag }}"
+          fi
+  createPR:
+    needs: checkEnvironment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create a New Branch
         run: |
           git switch -c "${NEW_BRANCH_BASE}${TARGET_SUBMODULE_TAG}"
           git push -u origin "${NEW_BRANCH_BASE}${TARGET_SUBMODULE_TAG}"
       - name: Checkout submodule
         run: |
-          cd themes/techblog
+          cd "${SUBMODULE_DIR}"
           git checkout refs/tags/$TARGET_SUBMODULE_TAG
       - name: Add and Commit .gitmodules
         uses: EndBug/add-and-commit@v9.0.0
