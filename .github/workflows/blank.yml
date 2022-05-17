@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       targetTag:
+        type: string
         required: false
         description: "Input tag here"
         default: ""
@@ -31,6 +32,7 @@ jobs:
           LATEST_TAG="$(git tag -l --sort -refname | head -n 1)"
           echo "::set-output name=latestTag::$LATEST_TAG"
       - name: Download a Current Tag Artifact
+        if: ${{ ! github.event.inputs.tag }}
         uses: actions/download-artifact@v3.0.0
         with:
           name: currentTag
@@ -40,17 +42,11 @@ jobs:
         if: ${{ success() }}
         run: |
           CURRENT_TAG="$(cat currentTag.json | jq '.version | @sh')"
-          echo "::set-output name=currentTag::$CURRENT_TAG"
-      - name: Set the Target Tag to Environment
+          echo "::set-output name=currentTag::${{ steps.stepSCTE.outputs.currentTag }}"
+      - id: stepTTE
+        name: Set the Target Tag to Environment
         if: ${{ always() }}
-        run: |
-          if [ ${{ github.event.inputs.tag }} != '' ]; then
-            echo "::set-output name=targetTag::${{ github.event.inputs.tag }}"
-          elif [ ${{ steps.stepSCTE.outputs.currentTag }} != '' ]; then
-            echo "::set-output name=targetTag::${{ steps.stepSCTE.outputs.currentTag }}"
-          else
-            exit 1
-          fi
+        run: echo "::set-output name=targetTag::${{ github.event.inputs.targetTag }}${{ steps.stepSCTE.outputs.currentTag }}"
   createPR:
     needs: checkEnvironment
     runs-on: ubuntu-latest
