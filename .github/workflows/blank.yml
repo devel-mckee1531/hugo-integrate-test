@@ -42,11 +42,14 @@ jobs:
           CURRENT_TAG="$(cat currentTag.json | jq '.version | @sh')"
           echo "::set-output name=currentTag::$CURRENT_TAG"
       - name: Set the Target Tag to Environment
+        if: ${{ always() }}
         run: |
           if [ ${{ github.event.inputs.tag }} != '' ]; then
             echo "::set-output name=targetTag::${{ github.event.inputs.tag }}"
+          elif [ ${{ steps.stepSCTE.outputs.currentTag }} != '' ]; then
+            echo "::set-output name=targetTag::${{ steps.stepSCTE.outputs.currentTag }}"
           else
-            echo "::set-output name=targetTag::${{ github.event.inputs.tag }}"
+            exit 1
           fi
   createPR:
     needs: checkEnvironment
