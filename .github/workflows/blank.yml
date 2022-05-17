@@ -6,18 +6,25 @@ on:
       targetTag:
         type: string
         required: false
-        description: "Input tag here"
-        default: ""
+        description: 'Input tag here'
+        default: ''
 
 env:
   TARGET_BRANCH_NAME: develop
   SUBMODULE_DIR: themes/techblog
   NEW_BRANCH_BASE: design/
+  COMMIT_MESSAGE: 'Update submodule by Github Actions'
+  PR_TITLE: 'New Submodule Version is Released'
+  PR_BODY: ''
 
 jobs:
-  checkEnvironment:
+  Prepare:
     runs-on: ubuntu-latest
     steps:
+      - name: Check Environments
+        run: |
+          git --version
+          gh version
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -36,35 +43,33 @@ jobs:
         uses: actions/download-artifact@v3.0.0
         with:
           name: currentTag
-          path: currentTag.json
+          path: .artifact/currentTag.json
       - id: stepSCTE
         name: Set the Current Tag to Environment
         if: ${{ success() }}
         run: |
           CURRENT_TAG="$(cat currentTag.json | jq '.version | @sh')"
           echo "::set-output name=currentTag::${{ steps.stepSCTE.outputs.currentTag }}"
-      - id: stepTTE
+      - id: stepSTTE
         name: Set the Target Tag to Environment
         if: ${{ always() }}
         run: echo "::set-output name=targetTag::${{ github.event.inputs.targetTag }}${{ steps.stepSCTE.outputs.currentTag }}"
-  createPR:
-    needs: checkEnvironment
-    runs-on: ubuntu-latest
-    steps:
       - name: Create a New Branch
+        if: >-
+          ${{
+            steps.stepCLT.outputs.latestTag &&
+            steps.stepSTTE.outputs.targetTag &&
+            steps.stepSTTE.outputs.targetTag != steps.stepCLT.outputs.latestTag
+          }}
         run: |
-          git switch -c "${NEW_BRANCH_BASE}${TARGET_SUBMODULE_TAG}"
-          git push -u origin "${NEW_BRANCH_BASE}${TARGET_SUBMODULE_TAG}"
-      - name: Checkout submodule
+          git switch -c "${NEW_BRANCH_BASE}${{ steps.stepCLT.outputs.latestTag }}"
+          git push -u origin "${NEW_BRANCH_BASE}${{ steps.stepCLT.outputs.latestTag }}"
+      - name: Checkout Submodule by Latest Tag
+        if: ${{ success() }}
         run: |
           cd "${SUBMODULE_DIR}"
-          git checkout refs/tags/$TARGET_SUBMODULE_TAG
-      - name: Add and Commit .gitmodules
-        uses: EndBug/add-and-commit@v9.0.0
-        with:
-          add: .gitmodules
-          author_name: devel-mckee1531
-          author_email: devel.mckee.1531@gmail.com
-          message: "The new submodule version is released."
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-           
+          git checkout refs/tags/${{ steps.stepCLT.outputs.latestTag }}
+      - name: Add and Commit Submodule Update
+        run: |
+          git add "${SUBMODULE_DIR}"
+          git commit -m "${COMMIT_MESSAGE}"
