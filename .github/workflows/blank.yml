@@ -21,7 +21,7 @@ jobs:
   Prepare:
     runs-on: ubuntu-latest
     steps:
-      - name: Check Environments
+      - name: Echo Environments
         run: |
           git --version
           gh version
@@ -32,44 +32,45 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
-      - id: stepCLT
-        name: Check the Latest Tag
+
+      - name: Check Target Tag Validation
+        if: ${{ github.event.inputs.targetTag }}
         run: |
           cd "${SUBMODULE_DIR}"
-          LATEST_TAG="$(git tag -l --sort -refname | head -n 1)"
+          git tag -l --sort -authordate | grep -x "${{ github.event.inputs.targetTag }}"
+          if [ "$?" eq 0 ]; then
+            exit 0
+          else
+            exit 1
+          fi
+
+      - id: stepLatestTag
+        if: ${{ ! github.event.inputs.targetTag }}
+        name: Set the Latest Submodule Tag to Environment
+        run: |
+          cd "${SUBMODULE_DIR}"
+          LATEST_TAG="$(git tag -l --sort -authordate | head -n 1)"
           echo "::set-output name=latestTag::$LATEST_TAG"
+
       - name: Download a Current Tag Artifact
-        if: ${{ ! github.event.inputs.tag }}
+        if: ${{ ! github.event.inputs.targetTag }}
         uses: actions/download-artifact@v3.0.0
         with:
           name: currentTag
           path: .artifact/currentTag.json
-      - id: stepSCTE
+
+      - id: stepCurrentTag
         name: Set the Current Tag to Environment
         if: ${{ success() }}
         run: |
           CURRENT_TAG="$(cat currentTag.json | jq '.version | @sh')"
-          echo "::set-output name=currentTag::${{ steps.stepSCTE.outputs.currentTag }}"
-      - id: stepSTTE
-        name: Set the Target Tag to Environment
-        if: ${{ always() }}
-        run: echo "::set-output name=targetTag::${{ github.event.inputs.targetTag }}${{ steps.stepSCTE.outputs.currentTag }}"
-      - name: Create a New Branch
-        if: >-
-          ${{
-            steps.stepCLT.outputs.latestTag &&
-            steps.stepSTTE.outputs.targetTag &&
-            steps.stepSTTE.outputs.targetTag != steps.stepCLT.outputs.latestTag
-          }}
-        run: |
-          git switch -c "${NEW_BRANCH_BASE}${{ steps.stepCLT.outputs.latestTag }}"
-          git push -u origin "${NEW_BRANCH_BASE}${{ steps.stepCLT.outputs.latestTag }}"
-      - name: Checkout Submodule by Latest Tag
+          echo "::set-output name=currentTag::$CURRENT_TAG"
+
+      - name: Detect Submodule Updates
         if: ${{ success() }}
         run: |
-          cd "${SUBMODULE_DIR}"
-          git checkout refs/tags/${{ steps.stepCLT.outputs.latestTag }}
-      - name: Add and Commit Submodule Update
-        run: |
-          git add "${SUBMODULE_DIR}"
-          git commit -m "${COMMIT_MESSAGE}"
+          if [ ${{ steps.stepLatestTag.outputs.latestTag }} > ${{ steps.stepCurrentTag.outputs.currentTag }} ]; then
+            exit 0
+          else
+            exit 1
+          fi
