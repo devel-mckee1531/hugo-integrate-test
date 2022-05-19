@@ -124,6 +124,6 @@ jobs:
           fi
       - name: Create a New Pull Request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           gh pr create -B "${TARGET_BRANCH_NAME}" -t "${PR_TITLE}" -b "${PR_BODY}"
