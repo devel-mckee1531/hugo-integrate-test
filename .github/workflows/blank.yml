@@ -20,6 +20,8 @@ env:
 jobs:
   Prepare:
     runs-on: ubuntu-latest
+    outputs:
+      processingTag: ${{ steps.stepProcessingTag.outputs.processingTag }}
     steps:
       - name: Echo Environments
         run: |
@@ -32,7 +34,6 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
-
       - name: Check Target Tag Validation
         if: ${{ github.event.inputs.targetTag }}
         run: |
@@ -43,7 +44,6 @@ jobs:
           else
             exit 1
           fi
-
       - id: stepLatestTag
         if: ${{ ! github.event.inputs.targetTag }}
         name: Set the Latest Submodule Tag to Environment
@@ -51,26 +51,61 @@ jobs:
           cd "${SUBMODULE_DIR}"
           LATEST_TAG="$(git tag -l --sort -authordate | head -n 1)"
           echo "::set-output name=latestTag::$LATEST_TAG"
-
       - name: Download a Current Tag Artifact
         if: ${{ ! github.event.inputs.targetTag }}
         uses: actions/download-artifact@v3.0.0
         with:
           name: currentTag
           path: .artifact/currentTag.json
-
       - id: stepCurrentTag
         name: Set the Current Tag to Environment
-        if: ${{ success() }}
+        if: ${{ ! github.event.inputs.targetTag }}
         run: |
           CURRENT_TAG="$(cat currentTag.json | jq '.version | @sh')"
           echo "::set-output name=currentTag::$CURRENT_TAG"
-
       - name: Detect Submodule Updates
-        if: ${{ success() }}
+        if: ${{ ! github.event.inputs.targetTag }}
         run: |
           if [ ${{ steps.stepLatestTag.outputs.latestTag }} > ${{ steps.stepCurrentTag.outputs.currentTag }} ]; then
             exit 0
           else
             exit 1
           fi
+      - id: stepProcessingTag
+        name: Determine Processing Tag
+        run: |
+          TARGET=${{ github.event.inputs.targetTag }}
+          LATEST=${{ steps.stepLatestTag.outputs.latestTag }}
+          if [ -n "$TARGET" ]; then
+            echo "::set-output name=processingTag::$TARGET"
+            exit 0
+          fi
+          if [ -n "$LATEST" ]; then
+            echo "::set-output name=processingTag::$LATEST"
+            exit 0
+          fi
+          exit 1
+  Update:
+    needs: Prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.env.TARGET_BRANCH_NAME }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Create a New Branch
+        run: |
+          git switch -c "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
+          git push -u origin "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
+      - name: Checkout Submodule by Tag
+        if: ${{ success() }}
+        run: |
+          cd "${SUBMODULE_DIR}"
+          git checkout refs/tags/${{ needs.Prepare.outputs.processingTag }}
+      - name: Add and Commit Submodule Update
+        run: |
+          git add "${SUBMODULE_DIR}"
+          git commit -m "${COMMIT_MESSAGE}"
