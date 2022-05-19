@@ -1,4 +1,4 @@
-name: testCI
+name: Create a Pull Request on Submodule Updated
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ env:
   TARGET_BRANCH_NAME: develop
   SUBMODULE_DIR: themes/techblog
   NEW_BRANCH_BASE: design/
-  COMMIT_MESSAGE: 'Update submodule by Github Actions'
+  COMMIT_MESSAGE: 'Update submodule by '
   PR_TITLE: 'New Submodule Version is Released'
   PR_BODY: ''
 
@@ -98,14 +98,34 @@ jobs:
           submodules: recursive
       - name: Create a New Branch
         run: |
-          git switch -c "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
-          git push -u origin "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
+          git branch -a --format="%(refname:short)" | grep -x "${{ needs.Prepare.outputs.processingTag }}"
+          if [ "$?" -eq 0 ]; then
+            git switch -c "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
+            git push -u origin "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
+            exit 0
+          else
+            exit 1
+          fi
       - name: Checkout Submodule by Tag
         if: ${{ success() }}
         run: |
           cd "${SUBMODULE_DIR}"
           git checkout refs/tags/${{ needs.Prepare.outputs.processingTag }}
-      - name: Add and Commit Submodule Update
+      - name: Add, Commit and Push Submodule Update
         run: |
-          git add "${SUBMODULE_DIR}"
-          git commit -m "${COMMIT_MESSAGE}"
+          git diff --exit-code
+          if [ "$?" -eq 1 ]; then
+            git config user.name "${GITHUB_ACTOR}"
+            git config user.email "${GITHUB_ACTOR}@github.com"
+            git add "${SUBMODULE_DIR}"
+            git commit -m "${COMMIT_MESSAGE}${GITHUB_ACTOR}"
+            git push
+            exit 0
+          else
+            exit 1
+          fi
+      - name: Create a New Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create -B "${TARGET_BRANCH_NAME}" -t "${PR_TITLE}" -b "${PR_BODY}"
