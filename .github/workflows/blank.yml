@@ -38,7 +38,7 @@ jobs:
         run: |
           cd "${SUBMODULE_DIR}"
           git tag -l --sort -authordate | grep -x "${{ github.event.inputs.targetTag }}"
-          if [ "$?" eq 0 ]; then
+          if [ "$?" -eq 0 ]; then
             exit 0
           else
             exit 1
