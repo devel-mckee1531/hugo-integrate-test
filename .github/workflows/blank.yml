@@ -98,7 +98,7 @@ jobs:
           submodules: recursive
       - name: Create a New Branch
         run: |
-          git branch -a --format="%(refname:short)" | grep -x "${{ needs.Prepare.outputs.processingTag }}"
+          git branch -a --format="%(refname:short)" | grep -x "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
           if [ "$?" -eq 1 ]; then
             git switch -c "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
             git push -u origin "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
