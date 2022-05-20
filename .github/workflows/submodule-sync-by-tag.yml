@@ -121,7 +121,7 @@ jobs:
           if ! git branch -a --format="%(refname:short)" | grep -x "origin/${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"; then
             exit 0
           else
-            echo "::error::The branch name ${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }} is already in use."
+            echo "::error::The branch name ${NEW_BRANCH_BASE}/${{ steps.stepProcessingTag.outputs.processingTag }} is already in use."
             exit 1
           fi
 
