@@ -116,7 +116,9 @@ jobs:
           submodules: recursive
       - name: Create a New Branch
         run: |
+          echo "Current branch is $(git symbolic-ref --short HEAD)"
           git switch -c "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"
+          echo "Current branch is $(git symbolic-ref --short HEAD)"
           git push -u origin "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"
       - name: Checkout Submodule by Tag
         run: |
