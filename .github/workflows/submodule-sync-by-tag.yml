@@ -37,7 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.env.TARGET_BRANCH }}
+          ref: ${{ env.TARGET_BRANCH }}
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
@@ -45,7 +45,7 @@ jobs:
         if: ${{ github.event.inputs.targetTag }}
         run: |
           cd "${SUBMODULE_DIR}"
-          if echo "${{ github.event.inputs.targetTag }}" | grep -vE "${{ github.env.TAG_VALIDATION }}"; then
+          if echo "${{ github.event.inputs.targetTag }}" | grep -vE "${{ env.TAG_VALIDATION }}"; then
             echo "The target tag ${{ github.event.inputs.targetTag }} is invalid format."
             echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
             exit 1
@@ -121,7 +121,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.env.TARGET_BRANCH }}
+          ref: ${{ env.TARGET_BRANCH }}
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
@@ -145,7 +145,7 @@ jobs:
             git push
             exit 0
           else
-            echo "There is no change in the referenced submodule of the branch ${{ github.env.TARGET_BRANCH }}"
+            echo "There is no change in the referenced submodule of the branch ${{ env.TARGET_BRANCH }}"
             exit 1
           fi
       - name: Create a New Pull Request
