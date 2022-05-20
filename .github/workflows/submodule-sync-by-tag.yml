@@ -45,6 +45,7 @@ jobs:
         if: ${{ github.event.inputs.targetTag }}
         run: |
           cd "${SUBMODULE_DIR}"
+          set -ux
           echo "${{ github.event.inputs.targetTag }}" | grep -qE "${{ env.TAG_VALIDATION }}"
           echo "$?"
           if ! (echo "${{ github.event.inputs.targetTag }}" | grep -qE "${{ env.TAG_VALIDATION }}"); then
@@ -80,12 +81,12 @@ jobs:
         name: Set the Current Tag to Environment
         if: ${{ ! github.event.inputs.targetTag }}
         run: |
-          CURRENT_TAG="$(cat .artifact/currentTag.json | jq -r '.tag')"
+          CURRENT_TAG="$(jq -r '.tag' < .artifact/currentTag.json)"
           echo "::set-output name=currentTag::${CURRENT_TAG}"
       - name: Detect Submodule Updates
         if: ${{ ! github.event.inputs.targetTag }}
         run: |
-          if [ ${{ steps.stepLatestTag.outputs.latestTag }} > ${{ steps.stepCurrentTag.outputs.currentTag }} ]; then
+          if [ ${{ steps.stepLatestTag.outputs.latestTag }} \> ${{ steps.stepCurrentTag.outputs.currentTag }} ]; then
             exit 0
           else
             echo "The current tag ${{ steps.stepCurrentTag.outputs.currentTag }} is newer than the latest tag ${{ steps.stepLatestTag.outputs.latestTag }}."
@@ -184,7 +185,9 @@ jobs:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - name: Remove the Temporary Branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
-          if ! git branch -a --format="%(refname:short)" | grep -x "${{ github.head_ref }}"; then
-            git push --delete origin "${{ github.head_ref }}"
+          if ! git branch -a --format="%(refname:short)" | grep -x "$HEAD_REF"; then
+            git push --delete origin "$HEAD_REF"
           fi
