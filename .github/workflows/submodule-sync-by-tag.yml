@@ -32,11 +32,18 @@ jobs:
     steps:
       - name: Echo Environments
         run: |
+          echo '::group::Software version'
+          echo '::notice::bash version'
           bash --version
+          echo '::notice::grep version'
           grep --version
+          echo '::notice::jq version'
           jq --version
+          echo '::notice::git version'
           git --version
+          echo '::notice::gh version'
           gh version
+          echo '::endgroup::'
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -49,15 +56,15 @@ jobs:
         run: |
           cd "${SUBMODULE_DIR}"
           set -ux
-          if ! (echo "${{ github.event.inputs.targetTag }}" | grep -q "${{ env.TAG_VALIDATION }}"); then
-            echo "The target tag ${{ github.event.inputs.targetTag }} is invalid format."
-            echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
+          if ! (echo "${{ github.event.inputs.targetTag }}" | grep -q "${TAG_VALIDATION}"); then
+            echo "::error::The target tag ${{ github.event.inputs.targetTag }} is invalid format."
+            echo "::error::The tag should match a pattern like this: ${TAG_VALIDATION}"
             exit 1
           fi
           if git tag -l --sort -authordate | grep -x "${{ github.event.inputs.targetTag }}"; then
             exit 0
           else
-            echo "The target tag ${{ github.event.inputs.targetTag }} is not tagged in submodule."
+            echo "::error::The target tag ${{ github.event.inputs.targetTag }} is not tagged in submodule."
             exit 1
           fi
       - id: stepLatestTag
@@ -66,9 +73,9 @@ jobs:
         run: |
           cd "${SUBMODULE_DIR}"
           LATEST_TAG="$(git tag -l --sort -authordate | head -n 1)"
-          if echo "${LATEST_TAG}" | grep -vE "${TAG_VALIDATION}"; then
-            echo "The latest tag ${LATEST_TAG} is invalid format."
-            echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
+          if ! (echo "${LATEST_TAG}" | grep -q "${TAG_VALIDATION}"); then
+            echo "::error::The latest tag ${LATEST_TAG} is invalid format."
+            echo "::error::The tag should match a pattern like this: ${TAG_VALIDATION}"
             exit 1
           fi
           echo "::set-output name=latestTag::${LATEST_TAG}"
@@ -90,7 +97,7 @@ jobs:
           if [ ${{ steps.stepLatestTag.outputs.latestTag }} \> ${{ steps.stepCurrentTag.outputs.currentTag }} ]; then
             exit 0
           else
-            echo "The current tag ${{ steps.stepCurrentTag.outputs.currentTag }} is newer than the latest tag ${{ steps.stepLatestTag.outputs.latestTag }}."
+            echo "::error::The current tag ${{ steps.stepCurrentTag.outputs.currentTag }} is newer than the latest tag ${{ steps.stepLatestTag.outputs.latestTag }}."
             exit 1
           fi
       - id: stepProcessingTag
@@ -107,14 +114,14 @@ jobs:
             echo "::set-output name=processingTag::${LATEST}"
             exit 0
           fi
-          echo 'The processing tag cannot be defined.'
+          echo '::error::The processing tag cannot be defined.'
           exit 1
       - name: Check a New Branch Name is Usable
         run: |
           if ! git branch -a --format="%(refname:short)" | grep -x "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"; then
             exit 0
           else
-            echo "The branch name ${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }} is already in use."
+            echo "::error::The branch name ${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }} is already in use."
             exit 1
           fi
 
@@ -149,7 +156,7 @@ jobs:
             git push
             exit 0
           else
-            echo "There is no change in the referenced submodule of the branch ${{ env.TARGET_BRANCH }}"
+            echo "::error::There is no change in the referenced submodule of the branch ${{ env.TARGET_BRANCH }}"
             exit 1
           fi
       - name: Create a New Pull Request
