@@ -1,6 +1,8 @@
-name: Create a Pull Request on Submodule Updated
+name: Submodule Sync by Tag
 
 on:
+  schedule:
+    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       targetTag:
@@ -8,11 +10,14 @@ on:
         required: false
         description: 'Input tag here'
         default: ''
+  pull_request:
+    types:
+      - closed
 
 env:
-  TARGET_BRANCH_NAME: develop
+  TARGET_BRANCH: develop
   SUBMODULE_DIR: themes/techblog
-  NEW_BRANCH_BASE: design/
+  NEW_BRANCH_BASE: design
   COMMIT_MESSAGE: 'Update submodule by '
   PR_TITLE: 'New Submodule Version is Released'
   PR_BODY: ''
@@ -20,17 +25,19 @@ env:
 jobs:
   Prepare:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
     outputs:
       processingTag: ${{ steps.stepProcessingTag.outputs.processingTag }}
     steps:
       - name: Echo Environments
         run: |
+          $0 --version
           git --version
           gh version
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.env.TARGET_BRANCH_NAME }}
+          ref: ${{ github.env.TARGET_BRANCH }}
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
@@ -38,10 +45,10 @@ jobs:
         if: ${{ github.event.inputs.targetTag }}
         run: |
           cd "${SUBMODULE_DIR}"
-          git tag -l --sort -authordate | grep -x "${{ github.event.inputs.targetTag }}"
-          if [ "$?" -eq 0 ]; then
+          if git tag -l --sort -authordate | grep -x "${{ github.event.inputs.targetTag }}"; then
             exit 0
           else
+            echo "The target tag ${{ github.event.inputs.targetTag }} is not tagged in submodule."
             exit 1
           fi
       - id: stepLatestTag
@@ -51,7 +58,7 @@ jobs:
           cd "${SUBMODULE_DIR}"
           LATEST_TAG="$(git tag -l --sort -authordate | head -n 1)"
           echo "::set-output name=latestTag::$LATEST_TAG"
-      - name: Download a Current Tag Artifact
+      - name: Download the Current Tag Artifact
         if: ${{ ! github.event.inputs.targetTag }}
         uses: actions/download-artifact@v3.0.0
         with:
@@ -61,7 +68,7 @@ jobs:
         name: Set the Current Tag to Environment
         if: ${{ ! github.event.inputs.targetTag }}
         run: |
-          CURRENT_TAG="$(cat currentTag.json | jq '.version | @sh')"
+          CURRENT_TAG="$(cat .artifact/currentTag.json | jq -r '.tag')"
           echo "::set-output name=currentTag::$CURRENT_TAG"
       - name: Detect Submodule Updates
         if: ${{ ! github.event.inputs.targetTag }}
@@ -69,13 +76,15 @@ jobs:
           if [ ${{ steps.stepLatestTag.outputs.latestTag }} > ${{ steps.stepCurrentTag.outputs.currentTag }} ]; then
             exit 0
           else
+            echo "The current tag ${{ steps.stepCurrentTag.outputs.currentTag }} is newer than the latest tag ${{ steps.stepLatestTag.outputs.latestTag }}."
             exit 1
           fi
       - id: stepProcessingTag
         name: Determine Processing Tag
+        env:
+          TARGET: ${{ github.event.inputs.targetTag }}
+          LATEST: ${{ steps.stepLatestTag.outputs.latestTag }}
         run: |
-          TARGET=${{ github.event.inputs.targetTag }}
-          LATEST=${{ steps.stepLatestTag.outputs.latestTag }}
           if [ -n "$TARGET" ]; then
             echo "::set-output name=processingTag::$TARGET"
             exit 0
@@ -84,7 +93,17 @@ jobs:
             echo "::set-output name=processingTag::$LATEST"
             exit 0
           fi
+          echo 'The processing tag cannot be defined.'
           exit 1
+      - name: Check a New Branch Name is Usable
+        run: |
+          if ! git branch -a --format="%(refname:short)" | grep -x "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"; then
+            exit 0
+          else
+            echo "The branch name ${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }} is already in use."
+            exit 1
+          fi
+
   Update:
     needs: Prepare
     runs-on: ubuntu-latest
@@ -92,21 +111,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.env.TARGET_BRANCH_NAME }}
+          ref: ${{ github.env.TARGET_BRANCH }}
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 0
           submodules: recursive
       - name: Create a New Branch
         run: |
-          if ! git branch -a --format="%(refname:short)" | grep -x "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"; then
-            git switch -c "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
-            git push -u origin "${NEW_BRANCH_BASE}${{ needs.Prepare.outputs.processingTag }}"
-            exit 0
-          else
-            exit 1
-          fi
+          git switch -c "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"
+          git push -u origin "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"
       - name: Checkout Submodule by Tag
-        if: ${{ success() }}
         run: |
           cd "${SUBMODULE_DIR}"
           git checkout refs/tags/${{ needs.Prepare.outputs.processingTag }}
@@ -120,10 +133,32 @@ jobs:
             git push
             exit 0
           else
+            echo "There is no change in the referenced submodule of the branch ${{ github.env.TARGET_BRANCH }}"
             exit 1
           fi
       - name: Create a New Pull Request
         env:
           GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
-          gh pr create -B "${TARGET_BRANCH_NAME}" -t "${PR_TITLE}" -b "${PR_BODY}"
+          gh pr create -B "${TARGET_BRANCH}" -t "${PR_TITLE}" -b "${PR_BODY}"
+      - name: Remove the New Branch to Rollback
+        if: ${{ failure() }}
+        run: |
+          if ! git branch -a --format="%(refname:short)" | grep -x "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"; then
+            git push --delete origin "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"
+          fi
+      - name: Create an Artifact JSON File
+        run: |
+          mkdir -p .artifact
+          jq -n --arg tag ${{ needs.Prepare.outputs.processingTag }} '{"tag": $tag}' > .artifact/currentTag.json
+      - name: Upload the Current Tag Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: currentTag
+          path: .artifact/currentTag.json
+
+  CleanUp:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request }}
+    steps:
+      - run: echo "nothing to do"
