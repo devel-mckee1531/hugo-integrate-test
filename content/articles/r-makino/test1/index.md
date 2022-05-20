@@ -14,6 +14,7 @@ resources:
 ---
 
 ## Heading1
+Nothing
 
 ## Heading2
 
