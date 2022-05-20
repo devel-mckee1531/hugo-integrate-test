@@ -47,6 +47,7 @@ jobs:
           cd "${SUBMODULE_DIR}"
           if ! echo "${{ github.event.inputs.targetTag }}" | grep -E "$TAG_VALIDATION"; then
             echo "The target tag ${{ github.event.inputs.targetTag }} is invalid format."
+            echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
             exit 1
           fi
           if git tag -l --sort -authordate | grep -x "${{ github.event.inputs.targetTag }}"; then
@@ -61,8 +62,9 @@ jobs:
         run: |
           cd "${SUBMODULE_DIR}"
           LATEST_TAG="$(git tag -l --sort -authordate | head -n 1)"
-          if ! echo "${LATEST_TAG}" | grep -E "$TAG_VALIDATION"; then
+          if ! echo "${LATEST_TAG}" | grep -E "${TAG_VALIDATION}"; then
             echo "The latest tag ${LATEST_TAG} is invalid format."
+            echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
             exit 1
           fi
           echo "::set-output name=latestTag::${LATEST_TAG}"
