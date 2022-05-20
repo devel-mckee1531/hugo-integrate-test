@@ -45,6 +45,8 @@ jobs:
         if: ${{ github.event.inputs.targetTag }}
         run: |
           cd "${SUBMODULE_DIR}"
+          echo "${{ github.event.inputs.targetTag }}" | grep -qE "${{ env.TAG_VALIDATION }}"
+          echo "$?"
           if ! (echo "${{ github.event.inputs.targetTag }}" | grep -qE "${{ env.TAG_VALIDATION }}"); then
             echo "The target tag ${{ github.event.inputs.targetTag }} is invalid format."
             echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
