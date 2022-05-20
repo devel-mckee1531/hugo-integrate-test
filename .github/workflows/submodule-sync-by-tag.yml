@@ -32,6 +32,9 @@ jobs:
     steps:
       - name: Echo Environments
         run: |
+          bash --version
+          grep --version
+          jq --version
           git --version
           gh version
       - name: Checkout
