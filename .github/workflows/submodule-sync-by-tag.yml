@@ -15,7 +15,7 @@ on:
       - closed
 
 env:
-  TAG_VALIDATION: '^v(\.\d+)+$'
+  TAG_VALIDATION: '^v\(\.\d\+\)\+$'
   TARGET_BRANCH: develop
   SUBMODULE_DIR: themes/techblog
   NEW_BRANCH_BASE: design
@@ -49,9 +49,7 @@ jobs:
         run: |
           cd "${SUBMODULE_DIR}"
           set -ux
-          echo "${{ github.event.inputs.targetTag }}" | grep -qE "${{ env.TAG_VALIDATION }}"
-          echo "$?"
-          if ! (echo "${{ github.event.inputs.targetTag }}" | grep -qE "${{ env.TAG_VALIDATION }}"); then
+          if ! (echo "${{ github.event.inputs.targetTag }}" | grep -q "${{ env.TAG_VALIDATION }}"); then
             echo "The target tag ${{ github.event.inputs.targetTag }} is invalid format."
             echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
             exit 1
