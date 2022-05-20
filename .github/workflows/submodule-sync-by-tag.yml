@@ -33,15 +33,15 @@ jobs:
       - name: Echo Environments
         run: |
           echo '::group::Software version'
-          echo '::notice::bash version'
+          echo 'bash version'
           bash --version
-          echo '::notice::grep version'
+          echo 'grep version'
           grep --version
-          echo '::notice::jq version'
+          echo 'jq version'
           jq --version
-          echo '::notice::git version'
+          echo 'git version'
           git --version
-          echo '::notice::gh version'
+          echo 'gh version'
           gh version
           echo '::endgroup::'
       - name: Checkout
@@ -53,8 +53,8 @@ jobs:
           submodules: recursive
       - name: Check Target Tag Validation
         if: ${{ github.event.inputs.targetTag }}
+        working-directory: ${{ env.SUBMODULE_DIR }}
         run: |
-          cd "${SUBMODULE_DIR}"
           if ! (echo "${{ github.event.inputs.targetTag }}" | grep -q "${TAG_VALIDATION}"); then
             echo "::error::The target tag ${{ github.event.inputs.targetTag }} is invalid format."
             echo "::error::The tag should match a pattern like this: ${TAG_VALIDATION}"
@@ -69,8 +69,8 @@ jobs:
       - id: stepLatestTag
         if: ${{ ! github.event.inputs.targetTag }}
         name: Set the Latest Submodule Tag to Environment
+        working-directory: ${{ env.SUBMODULE_DIR }}
         run: |
-          cd "${SUBMODULE_DIR}"
           LATEST_TAG="$(git tag -l --sort -authordate | head -n 1)"
           if ! (echo "${LATEST_TAG}" | grep -q "${TAG_VALIDATION}"); then
             echo "::error::The latest tag ${LATEST_TAG} is invalid format."
@@ -80,10 +80,15 @@ jobs:
           echo "::set-output name=latestTag::${LATEST_TAG}"
       - name: Download the Current Tag Artifact
         if: ${{ ! github.event.inputs.targetTag }}
-        uses: actions/download-artifact@v3.0.0
+        uses: dawidd6/action-download-artifact@v2
         with:
-          name: currentTag
-          path: .artifact/currentTag.json
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            workflow: submodule-sync-by-tag.yml
+            workflow_conclusion: success
+            name: currentTag
+            path: .artifact
+            check_artifacts:  true
+            search_artifacts: true
       - id: stepCurrentTag
         name: Set the Current Tag to Environment
         if: ${{ ! github.event.inputs.targetTag }}
@@ -183,7 +188,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       ${{
-        github.event.pull_request
+        github.event_name == 'pull_request'
       }}
     steps:
       - name: Checkout
