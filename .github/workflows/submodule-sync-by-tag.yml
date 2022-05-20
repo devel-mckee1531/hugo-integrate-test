@@ -173,10 +173,8 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       ${{
-        github.event.pull_request
-        &&
-        startsWith(env.NEW_BRANCH_BASE, github.head_ref)
-        &&
+        github.event.pull_request &&
+        startsWith(env.NEW_BRANCH_BASE, github.head_ref) &&
         github.base_ref == env.TARGET_BRANCH
       }}
     steps:
