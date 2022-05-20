@@ -55,7 +55,6 @@ jobs:
         if: ${{ github.event.inputs.targetTag }}
         run: |
           cd "${SUBMODULE_DIR}"
-          set -ux
           if ! (echo "${{ github.event.inputs.targetTag }}" | grep -q "${TAG_VALIDATION}"); then
             echo "::error::The target tag ${{ github.event.inputs.targetTag }} is invalid format."
             echo "::error::The tag should match a pattern like this: ${TAG_VALIDATION}"
@@ -118,7 +117,7 @@ jobs:
           exit 1
       - name: Check a New Branch Name is Usable
         run: |
-          if ! git branch -a --format="%(refname:short)" | grep -x "origin/${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"; then
+          if ! git branch -a --format="%(refname:short)" | grep -x "origin/${NEW_BRANCH_BASE}/${{ steps.stepProcessingTag.outputs.processingTag }}"; then
             exit 0
           else
             echo "::error::The branch name ${NEW_BRANCH_BASE}/${{ steps.stepProcessingTag.outputs.processingTag }} is already in use."
@@ -167,7 +166,7 @@ jobs:
       - name: Remove the New Branch to Rollback
         if: ${{ failure() }}
         run: |
-          if ! git branch -a --format="%(refname:short)" | grep -x "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"; then
+          if git branch -a --format="%(refname:short)" | grep -x "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"; then
             git push --delete origin "${NEW_BRANCH_BASE}/${{ needs.Prepare.outputs.processingTag }}"
           fi
       - name: Create an Artifact JSON File
@@ -196,6 +195,6 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
-          if ! git branch -a --format="%(refname:short)" | grep -x "$HEAD_REF"; then
+          if git branch -a --format="%(refname:short)" | grep -x "$HEAD_REF"; then
             git push --delete origin "$HEAD_REF"
           fi
