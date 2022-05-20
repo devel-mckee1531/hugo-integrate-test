@@ -171,7 +171,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request }}
     steps:
-      - run: |
+      - name: Clean
+        run: |
         echo "nothing to do"
         echo "head ref"
         echo ${{ github.head_ref }}
