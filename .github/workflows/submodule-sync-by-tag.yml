@@ -173,8 +173,8 @@ jobs:
     steps:
       - name: Clean
         run: |
-        echo "nothing to do"
-        echo "head ref"
-        echo ${{ github.head_ref }}
-        echo "base ref"
-        echo ${{ github.base_ref }}
+          echo "nothing to do"
+          echo "head ref"
+          echo ${{ github.head_ref }}
+          echo "base ref"
+          echo ${{ github.base_ref }}
