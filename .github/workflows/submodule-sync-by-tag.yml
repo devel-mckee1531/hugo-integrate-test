@@ -15,7 +15,7 @@ on:
       - closed
 
 env:
-  TAG_VALIDATION: '^v\(\.\d\+\)\+$'
+  TAG_VALIDATION: '^v\(\.[0-9]\+\)\+$'
   TARGET_BRANCH: develop
   SUBMODULE_DIR: themes/techblog
   NEW_BRANCH_BASE: design
