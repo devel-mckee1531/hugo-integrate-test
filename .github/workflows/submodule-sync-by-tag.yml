@@ -45,7 +45,7 @@ jobs:
         if: ${{ github.event.inputs.targetTag }}
         run: |
           cd "${SUBMODULE_DIR}"
-          if echo "${{ github.event.inputs.targetTag }}" | grep -vE "${{ env.TAG_VALIDATION }}"; then
+          if (echo "${{ github.event.inputs.targetTag }}" | grep -vE "${{ env.TAG_VALIDATION }}"); then
             echo "The target tag ${{ github.event.inputs.targetTag }} is invalid format."
             echo "The tag should match a pattern like this: ${TAG_VALIDATION}"
             exit 1
@@ -171,12 +171,22 @@ jobs:
 
   CleanUp:
     runs-on: ubuntu-latest
-    if: ${{ github.event.pull_request }}
+    if: >-
+      ${{
+        github.event.pull_request
+        &&
+        startsWith(env.NEW_BRANCH_BASE, github.head_ref)
+        &&
+        github.base_ref == env.TARGET_BRANCH
+      }}
     steps:
-      - name: Clean
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - name: Remove the Temporary Branch
         run: |
-          echo "nothing to do"
-          echo "head ref"
-          echo ${{ github.head_ref }}
-          echo "base ref"
-          echo ${{ github.base_ref }}
+          if ! git branch -a --format="%(refname:short)" | grep -x "${{ github.head_ref }}"; then
+            git push --delete origin "${{ github.head_ref }}"
+          fi
